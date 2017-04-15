@@ -164,29 +164,5 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
       }
     }
 
-
-    "clear all orders" in {
-      val orders = Seq(
-        Order(None, 1, 1, 10, "SELL"),
-        Order(None, 1, 1, 10, "BUY"),
-        Order(None, 1, 1, 10, "SELL"),
-        Order(None, 1, 1, 10, "BUY"),
-        Order(None, 1, 1, 10, "SELL")
-      )
-
-      val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
-
-      val f = for {
-        orders <- Future.sequence(orders.map(order => repository.register(order).map(id => order.copy(id = Some(id)))))
-        clearResult <- repository.clear()
-        registeredOrders <- Future.sequence(Seq(repository.buyQuery(), repository.sellQuery()))
-      } yield (clearResult, registeredOrders.flatten)
-
-      ScalaFutures.whenReady(f) { r =>
-        r._2.isEmpty mustBe true
-      }
-    }
-
-
   }
 }
