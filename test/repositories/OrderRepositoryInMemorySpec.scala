@@ -13,7 +13,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
   "OrderRepositoryInMemory.create" should {
 
     "register first order with no ID as order 1" in {
-      val order = Order(None, 1, 1, "BUY")
+      val order = Order(None, 1, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       ScalaFutures.whenReady(repository.register(order)) { r =>
@@ -21,9 +21,10 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
       }
     }
 
+
     "register first and second orders with no ID as order 1 and 2" in {
-      val order1 = Order(None, 1, 1, "BUY")
-      val order2 = Order(None, 2, 1, "BUY")
+      val order1 = Order(None, 1, 1, 10, "BUY")
+      val order2 = Order(None, 2, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = Future.sequence(Seq(repository.register(order1), repository.register(order2)))
@@ -33,7 +34,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "fail to register an order with and ID" in {
-      val order = Order(Some(1), 1, 1, "BUY")
+      val order = Order(Some(1), 1, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order)
@@ -43,7 +44,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "fail to register an order with an invalid type" in {
-      val order = Order(None, 1, 1, "HOARD")
+      val order = Order(None, 1, 1, 10, "HOARD")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order)
@@ -53,7 +54,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "find a registered sell order" in {
-      val order = Order(None, 1, 1, "SELL")
+      val order = Order(None, 1, 1, 10, "SELL")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order).flatMap({ id =>
@@ -68,7 +69,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "find a registered buy order" in {
-      val order = Order(None, 1, 1, "BUY")
+      val order = Order(None, 1, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order).flatMap({ id =>
@@ -84,11 +85,11 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
 
     "find all registered sell orders" in {
       val orders = Seq(
-        Order(None, 1, 1, "SELL"),
-        Order(None, 1, 1, "BUY"),
-        Order(None, 1, 1, "SELL"),
-        Order(None, 1, 1, "BUY"),
-        Order(None, 1, 1, "SELL")
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL")
       )
 
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
@@ -105,7 +106,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "cancel a registered order" in {
-      val order = Order(None, 1, 1, "BUY")
+      val order = Order(None, 1, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order)
@@ -118,7 +119,7 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
     }
 
     "fail to cancel a cancelled order" in {
-      val order = Order(None, 1, 1, "BUY")
+      val order = Order(None, 1, 1, 10, "BUY")
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
 
       val f = repository.register(order)
@@ -142,11 +143,11 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
 
     "not interfere with other orders when cancelling an order" in {
       val orders = Seq(
-        Order(None, 1, 1, "SELL"),
-        Order(None, 1, 1, "BUY"),
-        Order(None, 1, 1, "SELL"),
-        Order(None, 1, 1, "BUY"),
-        Order(None, 1, 1, "SELL")
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL")
       )
 
       val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
@@ -162,6 +163,30 @@ class OrderRepositoryInMemorySpec extends PlaySpec with GuiceOneAppPerTest with 
         r._2.sortBy(_.id) mustBe r._1.sortBy(_.id)
       }
     }
+
+
+    "clear all orders" in {
+      val orders = Seq(
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL"),
+        Order(None, 1, 1, 10, "BUY"),
+        Order(None, 1, 1, 10, "SELL")
+      )
+
+      val repository = app.injector.instanceOf(classOf[OrderRepositoryInMemory])
+
+      val f = for {
+        orders <- Future.sequence(orders.map(order => repository.register(order).map(id => order.copy(id = Some(id)))))
+        clearResult <- repository.clear()
+        registeredOrders <- Future.sequence(Seq(repository.buyQuery(), repository.sellQuery()))
+      } yield (clearResult, registeredOrders.flatten)
+
+      ScalaFutures.whenReady(f) { r =>
+        r._2.isEmpty mustBe true
+      }
+    }
+
 
   }
 }

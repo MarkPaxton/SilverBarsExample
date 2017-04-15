@@ -1,8 +1,7 @@
 package repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, _}
 
-import javax.inject._
 import models.Order
 
 import scala.concurrent.Future
@@ -22,12 +21,10 @@ trait OrderRepository {
 class OrderRepositoryInMemory @Inject()() extends OrderRepository {
   private val ids = Iterator.from(1)
   private var openOrders = Map[Long, Order]()
-  private var cancelled = Map[Long, Order]()
-  private val validOrderTypes = Seq("BUY", "SELL")
 
   override def register(order: Order): Future[Long] = {
     order match {
-      case Order(None, _, _, op: String) if (validOrderTypes.contains(op)) => {
+      case Order(None, _, _, _, op: String) if (Order.validTypes.contains(op)) => {
         val id = ids.next()
         openOrders = openOrders.updated(id, order.copy(id = Some(id)))
         Future.successful(id)
@@ -40,7 +37,6 @@ class OrderRepositoryInMemory @Inject()() extends OrderRepository {
     openOrders.get(id) match {
       case Some(order: Order) => {
         openOrders = openOrders - id
-        cancelled = cancelled.updated(id, order)
         Future.successful(() => {})
       }
       case _ => Future.failed(new Exception("Not an open order"))
@@ -52,4 +48,5 @@ class OrderRepositoryInMemory @Inject()() extends OrderRepository {
   override def sellQuery(): Future[Seq[Order]] = orderQuery("SELL")
 
   override def buyQuery(): Future[Seq[Order]] = orderQuery("BUY")
+
 }
