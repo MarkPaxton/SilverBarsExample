@@ -3,8 +3,8 @@
 # https://www.playframework.com/documentation/latest/ScalaRouting
 # ~~~~
 
-POST     /register                          controllers.SilverBarsController.register()
 GET      /                                  controllers.SilverBarsController.dashboardView()
+POST     /                                  controllers.SilverBarsController.register()
 DELETE   /:id                               controllers.SilverBarsController.cancel(id:Long)
 
 # Map static resources from the /public folder to the /assets URL path

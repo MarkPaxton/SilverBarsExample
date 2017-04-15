@@ -330,7 +330,7 @@ class SilverBarsControllerSpec extends PlaySpec with GuiceOneAppPerTest with Bef
 
     "return the dashboard data from the router" in {
       // Need to specify Host header to get through AllowedHostsFilter
-      val request = FakeRequest(GET, "/").withHeaders("Host" -> "localhost")
+      val request = FakeRequest(GET, "/").withHeaders("Host" -> "localhost:9000")
       val dashboard = route(app, request).get
 
       status(dashboard) mustBe OK
